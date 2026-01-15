@@ -86,6 +86,7 @@ struct ContentView: View {
                 }
             }
         }
+        .preferredColorScheme(.light)
         .animation(.default, value: mitchieMessage)
         .animation(.default, value: isThinking)
     }
