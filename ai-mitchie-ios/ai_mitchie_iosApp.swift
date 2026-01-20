@@ -11,7 +11,7 @@ import SwiftUI
 struct ai_mitchie_iosApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainMenuView()
         }
     }
 }

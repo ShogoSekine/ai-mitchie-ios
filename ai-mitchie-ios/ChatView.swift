@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ContentView: View {
+struct ChatView: View {
     @State private var mitchieMessage: String = "準備はいいかい？\n君の今日の頑張りを教えてくれ！"
     @State private var isThinking: Bool = false
     @State private var userInput: String = "" // ← 入力されたテキストを保持する変数
