@@ -1,3 +1,5 @@
+import SwiftUI
+
 struct WorkoutView: View {
     let rank: MitchieRank
     

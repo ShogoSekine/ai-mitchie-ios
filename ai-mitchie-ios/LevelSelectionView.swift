@@ -1,3 +1,4 @@
+import SwiftUI
 struct LevelSelectionView: View {
     @State private var selectedRank: MitchieRank = .lv1
     

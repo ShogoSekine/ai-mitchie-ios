@@ -1,3 +1,4 @@
+import SwiftUI
 struct MainMenuView: View {
     var body: some View {
         NavigationStack { // 画面遷移を管理するスタック
