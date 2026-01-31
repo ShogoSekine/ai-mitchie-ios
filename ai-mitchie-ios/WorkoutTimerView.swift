@@ -2,17 +2,16 @@ import SwiftUI
 import Combine
 
 struct WorkoutTimerView: View {
-    @Environment(\.dismiss) var dismiss // 完了後に画面を閉じるための魔法
+    @Environment(\.dismiss) var dismiss
     let session: DailySession
     
-    // タイマーの状態管理
     @State private var currentExerciseIndex = 0
     @State private var currentSet = 1
     @State private var isResting = false
     @State private var timeLeft: Double = 0
     @State private var totalDuration: Double = 0
     @State private var timerRunning = false
-    @State private var isFinished = false // 完了画面のフラグ
+    @State private var isFinished = false
     
     // 全体進捗管理
     @State private var currentStepCount = 1
@@ -39,15 +38,39 @@ struct WorkoutTimerView: View {
             Color(white: 0.97).ignoresSafeArea()
             
             VStack(spacing: 20) {
-                // 進捗ヘッダー：全体の何セット目かを表示
-                HStack {
-                    Text("全体進捗:")
-                    Text("\(currentStepCount) / \(totalSteps)")
-                        .font(.system(.body, design: .monospaced))
-                        .fontWeight(.bold)
+                // --- 進捗インジケーターエリア ---
+                HStack(spacing: 30) {
+                    VStack {
+                        Text("この種目")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        if !isResting {
+                            Text("あと \(session.exercises[currentExerciseIndex].sets - currentSet + 1) セット")
+                                .font(.headline)
+                                .foregroundColor(.orange)
+                        } else {
+                            Text("-") // 休憩中はハイフン表示
+                                .font(.headline)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    
+                    Divider().frame(height: 30)
+                    
+                    VStack {
+                        Text("ミッション完了まで")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("あと \(totalSteps - currentStepCount + 1) セット")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                    }
                 }
+                .padding()
+                .background(Color.white)
+                .cornerRadius(15)
+                .shadow(color: .black.opacity(0.05), radius: 5)
                 .padding(.top)
-                .foregroundColor(.secondary)
 
                 VStack {
                     Text("Day \(session.dayNumber)")
@@ -81,11 +104,8 @@ struct WorkoutTimerView: View {
                 }
                 .frame(width: 240, height: 240)
 
-                VStack(spacing: 15) {
-                    Text("種目内セット: \(currentSet) / \(session.exercises[currentExerciseIndex].sets)")
-                        .font(.headline)
-                    
-                    // Mitchieのメッセージエリア
+                // Mitchieのメッセージエリア
+                VStack {
                     Text(mitchieMotivation)
                         .font(.headline)
                         .italic()
@@ -113,7 +133,7 @@ struct WorkoutTimerView: View {
                 .padding(.bottom, 20)
             }
             
-            // --- 完了画面オーバーレイ ---
+            // 完了画面オーバーレイ（変更なし）
             if isFinished {
                 Color.orange.ignoresSafeArea()
                     .transition(.opacity)
@@ -150,14 +170,13 @@ struct WorkoutTimerView: View {
                 .transition(.scale)
             }
         }
-        .navigationBarBackButtonHidden(timerRunning) // 運動中の誤操作防止
+        .navigationBarBackButtonHidden(timerRunning)
         .onAppear { setupNextStep() }
         .onReceive(timer) { _ in
             guard timerRunning && !isFinished else { return }
             
             if timeLeft > 0 {
                 timeLeft -= 1
-                // 10秒ごとにメッセージを更新（以前の半分の頻度）
                 if Int(timeLeft) % 10 == 0 && !isResting {
                     updateMotivation()
                 }
@@ -167,12 +186,13 @@ struct WorkoutTimerView: View {
         }
     }
     
+    // ロジック部分は変更なし
     func setupNextStep() {
         let currentExercise = session.exercises[currentExerciseIndex]
         if isResting {
             timeLeft = Double(currentExercise.restSeconds)
             totalDuration = Double(currentExercise.restSeconds)
-            mitchieMotivation = "今のうちに深呼吸だ！\n次でさらに追い込むぜ！🍵"
+            mitchieMotivation = "しっかり休んで、次の爆発に備えようぜ！🍵"
         } else {
             timeLeft = Double(currentExercise.workSeconds)
             totalDuration = Double(currentExercise.workSeconds)
@@ -190,15 +210,14 @@ struct WorkoutTimerView: View {
             
             if currentSet < currentExercise.sets {
                 currentSet += 1
-                currentStepCount += 1 // 全体進捗を加算
+                currentStepCount += 1
                 setupNextStep()
             } else if currentExerciseIndex + 1 < session.exercises.count {
                 currentExerciseIndex += 1
                 currentSet = 1
-                currentStepCount += 1 // 全体進捗を加算
+                currentStepCount += 1
                 setupNextStep()
             } else {
-                // すべて完了！
                 timerRunning = false
                 withAnimation(.spring()) {
                     isFinished = true
