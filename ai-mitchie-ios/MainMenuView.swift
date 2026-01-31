@@ -17,7 +17,7 @@ struct MainMenuView: View {
                     
                     VStack(spacing: 20) {
                         // トレーニング開始へのリンク
-                        NavigationLink(destination: LevelSelectionView()) {
+                        NavigationLink(destination: GoalSelectionView()) {
                             MenuButton(title: "トレーニングを始める", icon: "bolt.fill", color: .orange)
                         }
                         
