@@ -1,3 +1,5 @@
+import SwiftUI
+
 struct GoalSelectionView: View {
     let goals = [
         ("筋肉をつける", "figure.strengthtraining.traditional", Color.orange),

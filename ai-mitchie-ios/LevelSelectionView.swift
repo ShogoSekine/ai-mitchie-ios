@@ -22,7 +22,7 @@ struct LevelSelectionView: View {
                 .foregroundColor(.gray)
             
             // トレーニング開始ボタン
-            NavigationLink(destination: WorkoutDashboardView(rank: selectedRank)) {
+            NavigationLink(destination: WorkoutDashboardView()) {
                 Text("\(selectedRank.name)を開始！")
                     .font(.headline)
                     .foregroundColor(.white)

@@ -1,3 +1,5 @@
+import SwiftUI
+
 struct WorkoutDashboardView: View {
     let sessions: [DailySession] = mockPlan
     

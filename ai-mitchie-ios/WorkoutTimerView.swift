@@ -1,3 +1,5 @@
+import SwiftUI
+
 struct WorkoutTimerView: View {
     let session: DailySession
     @State private var currentExerciseIndex = 0

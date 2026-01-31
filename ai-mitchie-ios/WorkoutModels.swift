@@ -43,3 +43,19 @@ enum WorkoutGoal: String, CaseIterable, Identifiable {
         }
     }
 }
+
+// 4. モックデータ（実際のアプリではサーバーやデータベースから取得）
+let mockPlan: [DailySession] = (1...30).map { day in
+    DailySession(
+        dayNumber: day,
+        mitchieQuote: day == 1 ? "さあ、今日から新しい自分に挑戦だ！" :
+                       day == 15 ? "半分達成！ここからが本番だぞ！" :
+                       day == 30 ? "おめでとう！君はやり遂げた！" :
+                       "今日も一歩前進だ！",
+        exercises: [
+            Exercise(name: "スクワット", workSeconds: 30, restSeconds: 15, sets: 3),
+            Exercise(name: "腕立て伏せ", workSeconds: 20, restSeconds: 10, sets: 3),
+            Exercise(name: "腹筋", workSeconds: 25, restSeconds: 15, sets: 3)
+        ]
+    )
+}
