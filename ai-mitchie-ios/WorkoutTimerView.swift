@@ -1,6 +1,8 @@
 import SwiftUI
+import Combine
 
 struct WorkoutTimerView: View {
+    @Environment(\.dismiss) var dismiss // 完了後に画面を閉じるための魔法
     let session: DailySession
     
     // タイマーの状態管理
@@ -10,8 +12,15 @@ struct WorkoutTimerView: View {
     @State private var timeLeft: Double = 0
     @State private var totalDuration: Double = 0
     @State private var timerRunning = false
+    @State private var isFinished = false // 完了画面のフラグ
     
-    // Mitchieのモチベーションメッセージ
+    // 全体進捗管理
+    @State private var currentStepCount = 1
+    private var totalSteps: Int {
+        session.exercises.map { $0.sets }.reduce(0, +)
+    }
+    
+    // モチベーションメッセージ
     @State private var mitchieMotivation: String = ""
     let motivations = [
         "あと少し！君の筋肉が輝いてるぜ！✨",
@@ -23,41 +32,46 @@ struct WorkoutTimerView: View {
         "今の君、世界で一番カッコいいぜ！🚀"
     ]
     
-    // 1秒ごとに実行されるタイマー
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
         ZStack {
             Color(white: 0.97).ignoresSafeArea()
             
-            VStack(spacing: 30) {
-                // 現在の状態ヘッダー
+            VStack(spacing: 20) {
+                // 進捗ヘッダー：全体の何セット目かを表示
+                HStack {
+                    Text("全体進捗:")
+                    Text("\(currentStepCount) / \(totalSteps)")
+                        .font(.system(.body, design: .monospaced))
+                        .fontWeight(.bold)
+                }
+                .padding(.top)
+                .foregroundColor(.secondary)
+
                 VStack {
                     Text("Day \(session.dayNumber)")
                         .font(.subheadline).bold().foregroundColor(.gray)
                     Text(isResting ? "リラックス・タイム" : session.exercises[currentExerciseIndex].name)
                         .font(.system(size: 32, weight: .black, design: .rounded))
                         .foregroundColor(isResting ? .blue : .orange)
+                        .multilineTextAlignment(.center)
                 }
-                .padding(.top)
 
-                // 円形タイマー部分
+                // 円形タイマー
                 ZStack {
-                    // 背景の円（薄い色）
                     Circle()
                         .stroke(lineWidth: 20)
-                        .opacity(0.2)
+                        .opacity(0.1)
                         .foregroundColor(isResting ? .blue : .orange)
                     
-                    // カウントダウンに合わせて削れる円
                     Circle()
-                        .trim(from: 0, to: CGFloat(timeLeft / totalDuration))
-                        .stroke(style: StrokeStyle(lineWidth: 20, lineCap: .round, lineJoin: .round))
+                        .trim(from: 0, to: CGFloat(timeLeft / max(totalDuration, 1)))
+                        .stroke(style: StrokeStyle(lineWidth: 20, lineCap: .round))
                         .foregroundColor(isResting ? .blue : .orange)
-                        .rotationEffect(Angle(degrees: -90)) // 真上から始まるように回転
-                        .animation(.linear(duration: 1.0), value: timeLeft) // 滑らかな動き
+                        .rotationEffect(Angle(degrees: -90))
+                        .animation(.linear(duration: 1.0), value: timeLeft)
                     
-                    // 中央の残り秒数
                     VStack {
                         Text("\(Int(ceil(timeLeft)))")
                             .font(.system(size: 80, weight: .black, design: .rounded))
@@ -65,57 +79,86 @@ struct WorkoutTimerView: View {
                             .font(.caption).bold()
                     }
                 }
-                .frame(width: 260, height: 260)
-                .padding()
+                .frame(width: 240, height: 240)
 
-                // セット数とモチベーションメッセージ
-                VStack(spacing: 20) {
-                    Text("SET \(currentSet) / \(session.exercises[currentExerciseIndex].sets)")
-                        .font(.title2).bold()
+                VStack(spacing: 15) {
+                    Text("種目内セット: \(currentSet) / \(session.exercises[currentExerciseIndex].sets)")
+                        .font(.headline)
                     
-                    // Mitchieのメッセージ
+                    // Mitchieのメッセージエリア
                     Text(mitchieMotivation)
                         .font(.headline)
                         .italic()
                         .multilineTextAlignment(.center)
-                        .foregroundColor(.primary)
-                        .frame(height: 80)
-                        .padding(.horizontal)
-                        .background(Color.white.opacity(0.8))
+                        .frame(height: 100)
+                        .padding()
+                        .background(Color.white)
                         .cornerRadius(15)
+                        .shadow(color: .black.opacity(0.05), radius: 5)
                 }
+                .padding(.horizontal)
 
                 Spacer()
 
-                // コントロールボタン
                 Button(action: { timerRunning.toggle() }) {
-                    HStack {
-                        Image(systemName: timerRunning ? "pause.fill" : "play.fill")
-                        Text(timerRunning ? "一時停止" : "スタート！")
-                    }
-                    .font(.title2).bold()
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(timerRunning ? Color.gray : Color.orange)
-                    .cornerRadius(20)
-                    .shadow(radius: 5)
+                    Label(timerRunning ? "一時停止" : "スタート！", systemImage: timerRunning ? "pause.fill" : "play.fill")
+                        .font(.title3).bold()
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(timerRunning ? Color.secondary : Color.orange)
+                        .foregroundColor(.white)
+                        .cornerRadius(15)
                 }
                 .padding(.horizontal, 40)
-                .padding(.bottom, 30)
+                .padding(.bottom, 20)
+            }
+            
+            // --- 完了画面オーバーレイ ---
+            if isFinished {
+                Color.orange.ignoresSafeArea()
+                    .transition(.opacity)
+                
+                VStack(spacing: 30) {
+                    Text("🏆 MISSION COMPLETE 🏆")
+                        .font(.system(size: 30, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                    
+                    Image(systemName: "figure.strengthtraining.functional")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 120)
+                        .foregroundColor(.white)
+                    
+                    Text("よくやった！\n今日の君は昨日の君を超えたぜ！\nこの一歩が未来を変えるんだ！")
+                        .font(.title3)
+                        .fontWeight(.bold)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.white)
+                        .padding()
+
+                    Button(action: { dismiss() }) {
+                        Text("ダッシュボードに戻る")
+                            .font(.headline)
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 40)
+                            .padding(.vertical, 15)
+                            .background(Color.white)
+                            .cornerRadius(30)
+                    }
+                }
+                .padding()
+                .transition(.scale)
             }
         }
-        .onAppear {
-            setupNextStep()
-            mitchieMotivation = session.mitchieQuote // 最初は初期メッセージ
-        }
+        .navigationBarBackButtonHidden(timerRunning) // 運動中の誤操作防止
+        .onAppear { setupNextStep() }
         .onReceive(timer) { _ in
-            guard timerRunning else { return }
+            guard timerRunning && !isFinished else { return }
             
             if timeLeft > 0 {
                 timeLeft -= 1
-                // 5秒ごとにメッセージを更新して飽きさせない
-                if Int(timeLeft) % 5 == 0 && !isResting {
+                // 10秒ごとにメッセージを更新（以前の半分の頻度）
+                if Int(timeLeft) % 10 == 0 && !isResting {
                     updateMotivation()
                 }
             } else {
@@ -124,13 +167,12 @@ struct WorkoutTimerView: View {
         }
     }
     
-    // 次のステップ（トレーニングか休憩か）をセットアップ
     func setupNextStep() {
         let currentExercise = session.exercises[currentExerciseIndex]
         if isResting {
             timeLeft = Double(currentExercise.restSeconds)
             totalDuration = Double(currentExercise.restSeconds)
-            mitchieMotivation = "しっかり休んで、次の爆発に備えようぜ！🍵"
+            mitchieMotivation = "今のうちに深呼吸だ！\n次でさらに追い込むぜ！🍵"
         } else {
             timeLeft = Double(currentExercise.workSeconds)
             totalDuration = Double(currentExercise.workSeconds)
@@ -138,31 +180,28 @@ struct WorkoutTimerView: View {
         }
     }
     
-    // タイマー終了時の処理
     func handleStepCompletion() {
-        let currentExercise = session.exercises[currentExerciseIndex]
-        
         if !isResting {
-            // トレーニング終了 -> 休憩へ
             isResting = true
             setupNextStep()
         } else {
-            // 休憩終了
             isResting = false
+            let currentExercise = session.exercises[currentExerciseIndex]
+            
             if currentSet < currentExercise.sets {
-                // 次のセットへ
                 currentSet += 1
+                currentStepCount += 1 // 全体進捗を加算
+                setupNextStep()
+            } else if currentExerciseIndex + 1 < session.exercises.count {
+                currentExerciseIndex += 1
+                currentSet = 1
+                currentStepCount += 1 // 全体進捗を加算
                 setupNextStep()
             } else {
-                // 次の種目へ
-                if currentExerciseIndex + 1 < session.exercises.count {
-                    currentExerciseIndex += 1
-                    currentSet = 1
-                    setupNextStep()
-                } else {
-                    // 全種目終了！
-                    timerRunning = false
-                    mitchieMotivation = "完全燃焼だな！最高のトレーニングだったぜ！🏆"
+                // すべて完了！
+                timerRunning = false
+                withAnimation(.spring()) {
+                    isFinished = true
                 }
             }
         }
