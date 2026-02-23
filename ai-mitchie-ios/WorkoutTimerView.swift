@@ -3,7 +3,7 @@ import Combine
 
 struct WorkoutTimerView: View {
     @Environment(\.dismiss) var dismiss
-    let session: DailySession
+    let session: DailySessionModel
     
     @State private var currentExerciseIndex = 0
     @State private var currentSet = 1
@@ -138,7 +138,7 @@ struct WorkoutTimerView: View {
                 Color.orange.ignoresSafeArea()
                     .transition(.opacity)
                 
-                VStack(spacing: 30) {
+                VStack(spacing: 25) {
                     Text("🏆 MISSION COMPLETE 🏆")
                         .font(.system(size: 30, weight: .black, design: .rounded))
                         .foregroundColor(.white)
