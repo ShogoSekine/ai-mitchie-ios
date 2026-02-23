@@ -1,6 +1,8 @@
 import Foundation
 
-// APIから返ってくるJSONの形を定義
+// --- 1. APIからのレスポンスを受け取るための構造体 (DTO) ---
+// ※ SwiftDataのモデルとは別に定義することで、デコードエラーを防ぎます
+
 struct DailySessionDTO: Codable {
     let dayNumber: Int
     let mitchieQuote: String
@@ -14,37 +16,50 @@ struct ExerciseDTO: Codable {
     let sets: Int
 }
 
+// --- 2. APIクライアントクラス ---
+
 class MitchieAPIClient {
     static let shared = MitchieAPIClient()
     
-    // LambdaのURL（あなたのURLに書き換えてください）
-    private let lambdaURL = "https://nvjq0cxeu8.execute-api.ap-northeast-1.amazonaws.com/chat"
+    // Info.plist および .xcconfig からURLを動的に読み取ります
+    private var lambdaURL: String {
+        guard let url = Bundle.main.object(forInfoDictionaryKey: "ApiGatewayUrl") as? String else {
+            // ここでエラーが出る場合は、Info.plist の設定が漏れている可能性があります
+            fatalError("Info.plistにApiGatewayUrlが設定されてないぜ！プロジェクト設定を確認してくれ！")
+        }
+        return url
+    }
     
+    /// 指定された目標とレベルに基づき、7日間のプランをLambdaから取得します
     func fetch7DayPlan(goal: String, level: Int) async throws -> [DailySessionDTO] {
+        // 文字列のURLをURL型に変換
         guard let url = URL(string: lambdaURL) else {
             throw URLError(.badURL)
         }
         
+        // リクエストの作成
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Lambdaに送るパラメータ
+        // Lambdaに渡すリクエストボディの作成
         let body: [String: Any] = [
             "goal": goal,
             "level": level,
-            "days": 7 // 7日間を指定
+            "days": 7
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        // 通信実行
+        // 通信の実行（タイムアウトはLambda側の設定に合わせる必要があります）
         let (data, response) = try await URLSession.shared.data(for: request)
         
+        // ステータスコードの確認
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
         
-        // JSONを構造体に変換
-        return try JSONDecoder().decode([DailySessionDTO].self, from: data)
+        // JSONをデコードして返却
+        let decoder = JSONDecoder()
+        return try decoder.decode([DailySessionDTO].self, from: data)
     }
 }
