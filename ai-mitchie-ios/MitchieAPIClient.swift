@@ -1,36 +1,50 @@
 import Foundation
 
-struct MitchieResponse: Codable {
-    let reply: String
+// APIから返ってくるJSONの形を定義
+struct DailySessionDTO: Codable {
+    let dayNumber: Int
+    let mitchieQuote: String
+    let exercises: [ExerciseDTO]
+}
+
+struct ExerciseDTO: Codable {
+    let name: String
+    let workSeconds: Int
+    let restSeconds: Int
+    let sets: Int
 }
 
 class MitchieAPIClient {
-    // 【重要】ここに先ほどのテストで成功したAPI GatewayのURLを貼り付けてください
-    let endpoint = "https://nvjq0cxeu8.execute-api.ap-northeast-1.amazonaws.com/chat"
+    static let shared = MitchieAPIClient()
     
-    func askMitchie(userMessage: String) async throws -> String {
-        guard let url = URL(string: endpoint) else { throw URLError(.badURL) }
+    // LambdaのURL（あなたのURLに書き換えてください）
+    private let lambdaURL = "https://nvjq0cxeu8.execute-api.ap-northeast-1.amazonaws.com/chat"
+    
+    func fetch7DayPlan(goal: String, level: Int) async throws -> [DailySessionDTO] {
+        guard let url = URL(string: lambdaURL) else {
+            throw URLError(.badURL)
+        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        let body = ["message": userMessage]
-        request.httpBody = try? JSONEncoder().encode(body)
+        // Lambdaに送るパラメータ
+        let body: [String: Any] = [
+            "goal": goal,
+            "level": level,
+            "days": 7 // 7日間を指定
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        // タイムアウト設定を少し長めに（15秒程度）しておくと安心です
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 15.0
-        let session = URLSession(configuration: config)
-        
-        let (data, response) = try await session.data(for: request)
+        // 通信実行
+        let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            // エラー時もMitchieらしく励ます
-            return "ちょっと通信が混み合ってるみたいだけど、君の努力は私が一番よく分かっているからね！"
+            throw URLError(.badServerResponse)
         }
         
-        let result = try JSONDecoder().decode(MitchieResponse.self, from: data)
-        return result.reply
+        // JSONを構造体に変換
+        return try JSONDecoder().decode([DailySessionDTO].self, from: data)
     }
 }
