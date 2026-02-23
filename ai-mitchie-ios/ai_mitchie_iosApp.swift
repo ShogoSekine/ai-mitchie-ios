@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct ai_mitchie_iosApp: App {
@@ -13,5 +14,6 @@ struct ai_mitchie_iosApp: App {
         WindowGroup {
             MainMenuView()
         }
+        .modelContainer(for: DailySessionModel.self)
     }
 }
