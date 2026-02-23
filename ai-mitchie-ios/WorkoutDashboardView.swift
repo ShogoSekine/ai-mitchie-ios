@@ -5,7 +5,7 @@ struct WorkoutDashboardView: View {
     @Query(sort: \DailySessionModel.dayNumber) var sessions: [DailySessionModel]
     @Environment(\.modelContext) private var modelContext
     
-    // --- 保存せず、この画面内だけで管理する状態 ---
+    // 画面上で一時的に保持する選択値
     @State private var selectedGoal: WorkoutGoal = .health
     @State private var selectedLevel: Int = 1
     
@@ -22,7 +22,6 @@ struct WorkoutDashboardView: View {
                             .font(.system(size: 80))
                             .foregroundColor(.orange)
                         
-                        // --- 目標とレベルの選択UIを追加 ---
                         VStack(spacing: 20) {
                             Text("プランの条件を決めるぜ！")
                                 .font(.headline)
@@ -52,7 +51,6 @@ struct WorkoutDashboardView: View {
                                     .multilineTextAlignment(.center)
                             }
                         } else {
-                            // --- ボタンを押した時のStateを引数に渡す ---
                             Button(action: {
                                 generate7DayPlan(goal: selectedGoal, level: selectedLevel)
                             }) {
@@ -69,11 +67,30 @@ struct WorkoutDashboardView: View {
                     }
                     .padding(.top, 40)
                 } else {
-                    // 7日間リスト表示
+                    // --- 以前のように、ここに直接表示ロジックを記述します ---
                     VStack(spacing: 15) {
                         ForEach(sessions) { session in
                             NavigationLink(destination: WorkoutTimerView(session: session)) {
-                                DashboardRow(session: session)
+                                HStack {
+                                    Text("Day \(session.dayNumber)")
+                                        .font(.headline)
+                                        .frame(width: 60, alignment: .leading)
+                                        .foregroundColor(.orange)
+                                    
+                                    Text(session.mitchieQuote)
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: session.isCompleted ? "checkmark.circle.fill" : "chevron.right")
+                                        .foregroundColor(session.isCompleted ? .green : .orange)
+                                }
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(12)
+                                .shadow(color: .black.opacity(0.05), radius: 5)
                             }
                         }
                         
@@ -95,10 +112,8 @@ struct WorkoutDashboardView: View {
         }
     }
 
-    // 引数として受け取った値を使ってAPIを叩く
     func generate7DayPlan(goal: WorkoutGoal, level: Int) {
         isGenerating = true
-        
         Task {
             do {
                 let dtos = try await MitchieAPIClient.shared.fetch7DayPlan(
