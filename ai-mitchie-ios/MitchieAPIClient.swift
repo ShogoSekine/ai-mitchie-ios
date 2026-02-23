@@ -1,8 +1,8 @@
 import Foundation
 
-// --- 1. APIからのレスポンスを受け取るための構造体 (DTO) ---
-// ※ SwiftDataのモデルとは別に定義することで、デコードエラーを防ぎます
+// --- APIレスポンス用構造体 ---
 
+// 7日間プラン用
 struct DailySessionDTO: Codable {
     let dayNumber: Int
     let mitchieQuote: String
@@ -16,50 +16,71 @@ struct ExerciseDTO: Codable {
     let sets: Int
 }
 
-// --- 2. APIクライアントクラス ---
+// チャット用（Mitchieからの返答テキストだけを受け取る場合）
+struct MitchieChatResponse: Codable {
+    let response: String
+}
+
+// --- クライアントクラス ---
 
 class MitchieAPIClient {
     static let shared = MitchieAPIClient()
     
-    // Info.plist および .xcconfig からURLを動的に読み取ります
     private var lambdaURL: String {
         guard let url = Bundle.main.object(forInfoDictionaryKey: "ApiGatewayUrl") as? String else {
-            // ここでエラーが出る場合は、Info.plist の設定が漏れている可能性があります
-            fatalError("Info.plistにApiGatewayUrlが設定されてないぜ！プロジェクト設定を確認してくれ！")
+            fatalError("Info.plistにApiGatewayUrlが設定されてないぜ！")
         }
         return url
     }
     
-    /// 指定された目標とレベルに基づき、7日間のプランをLambdaから取得します
-    func fetch7DayPlan(goal: String, level: Int) async throws -> [DailySessionDTO] {
-        // 文字列のURLをURL型に変換
-        guard let url = URL(string: lambdaURL) else {
-            throw URLError(.badURL)
-        }
+    // 1. 【チャット用】Mitchieと会話するメソッド
+    func askMitchie(message: String) async throws -> String {
+        guard let url = URL(string: lambdaURL) else { throw URLError(.badURL) }
         
-        // リクエストの作成
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Lambdaに渡すリクエストボディの作成
+        // mode: "chat" を送ることで、Lambda側で処理を分岐させる想定です
         let body: [String: Any] = [
+            "mode": "chat",
+            "message": message
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        
+        // レスポンスをデコード（Lambda側の返却形式に合わせて調整してください）
+        let chatResult = try JSONDecoder().decode(MitchieChatResponse.self, from: data)
+        return chatResult.response
+    }
+    
+    // 2. 【ダッシュボード用】7日間のプランを生成するメソッド
+    func fetch7DayPlan(goal: String, level: Int) async throws -> [DailySessionDTO] {
+        guard let url = URL(string: lambdaURL) else { throw URLError(.badURL) }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        let body: [String: Any] = [
+            "mode": "generate_plan",
             "goal": goal,
             "level": level,
             "days": 7
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
-        // 通信の実行（タイムアウトはLambda側の設定に合わせる必要があります）
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        // ステータスコードの確認
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
         
-        // JSONをデコードして返却
-        let decoder = JSONDecoder()
-        return try decoder.decode([DailySessionDTO].self, from: data)
+        return try JSONDecoder().decode([DailySessionDTO].self, from: data)
     }
 }
