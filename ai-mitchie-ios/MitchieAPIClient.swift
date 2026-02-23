@@ -34,7 +34,7 @@ class MitchieAPIClient {
     }
     
     // 1. 【チャット用】Mitchieと会話するメソッド
-    func askMitchie(message: String) async throws -> String {
+    func askMitchie(userMessage: String) async throws -> String {
         guard let url = URL(string: lambdaURL) else { throw URLError(.badURL) }
         
         var request = URLRequest(url: url)
@@ -44,7 +44,7 @@ class MitchieAPIClient {
         // mode: "chat" を送ることで、Lambda側で処理を分岐させる想定です
         let body: [String: Any] = [
             "mode": "chat",
-            "message": message
+            "message": userMessage
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         
