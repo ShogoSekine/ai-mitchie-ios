@@ -52,6 +52,7 @@ struct WorkoutDashboardView: View {
                             }
                         } else {
                             Button(action: {
+                                print("選択された目標: \(selectedGoal.rawValue), レベル: \(selectedLevel)")
                                 generate7DayPlan(goal: selectedGoal, level: selectedLevel)
                             }) {
                                 Text("この条件で7日分生成！")
@@ -113,9 +114,11 @@ struct WorkoutDashboardView: View {
     }
 
     func generate7DayPlan(goal: WorkoutGoal, level: Int) {
+        print("generate7DayPlan called with goal: \(goal.rawValue), level: \(level)")
         isGenerating = true
         Task {
             do {
+
                 let dtos = try await MitchieAPIClient.shared.fetch7DayPlan(
                     goal: goal.rawValue,
                     level: level

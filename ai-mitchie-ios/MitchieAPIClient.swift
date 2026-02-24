@@ -30,13 +30,14 @@ class MitchieAPIClient {
         guard let url = Bundle.main.object(forInfoDictionaryKey: "ApiGatewayUrl") as? String else {
             fatalError("Info.plistにApiGatewayUrlが設定されてないぜ！")
         }
+        print("Loaded API Gateway URL from Info.plist: \(url)")
         return url
     }
     
     // 1. 【チャット用】Mitchieと会話するメソッド
     func askMitchie(userMessage: String) async throws -> String {
         guard let url = URL(string: lambdaURL) else { throw URLError(.badURL) }
-        
+        print("API Gateway URL: \(url)")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -61,7 +62,9 @@ class MitchieAPIClient {
     
     // 2. 【ダッシュボード用】7日間のプランを生成するメソッド
     func fetch7DayPlan(goal: String, level: Int) async throws -> [DailySessionDTO] {
+        print("fetch7DayPlan called with goal: \(goal), level: \(level)")
         guard let url = URL(string: lambdaURL) else { throw URLError(.badURL) }
+        print("API Gateway URL: \(lambdaURL)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
