@@ -12,7 +12,9 @@ import SwiftData
 struct ai_mitchie_iosApp: App {
     var body: some Scene {
         WindowGroup {
-            MainMenuView()
+            NavigationStack {
+                GoalSelectionView()
+            }
         }
         .modelContainer(for: DailySessionModel.self)
     }
