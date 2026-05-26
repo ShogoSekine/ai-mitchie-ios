@@ -25,14 +25,15 @@ class MitchieAPIClient {
         guard let url = Bundle.main.object(forInfoDictionaryKey: "ApiGatewayUrl") as? String else {
             fatalError("Info.plistにApiGatewayUrlが設定されてないぜ！")
         }
+        print("Loaded API Gateway URL from Info.plist: \(url)")
         return url
     }
     
     // 【ダッシュボード用】7日間のプランを生成するメソッド
     func fetch7DayPlan(goal: String, level: Int) async throws -> [DailySessionDTO] {
-        guard let url = URL(string: lambdaURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            throw URLError(.badURL)
-        }
+        print("fetch7DayPlan called with goal: \(goal), level: \(level)")
+        guard let url = URL(string: lambdaURL) else { throw URLError(.badURL) }
+        print("API Gateway URL: \(lambdaURL)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
