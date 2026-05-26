@@ -4,14 +4,18 @@ import SwiftData
 struct WorkoutDashboardView: View {
     @Query(sort: \DailySessionModel.dayNumber) var sessions: [DailySessionModel]
     @Environment(\.modelContext) private var modelContext
-    
-    // 画面上で一時的に保持する選択値
-    @State private var selectedGoal: WorkoutGoal = .health
-    @State private var selectedLevel: Int = 1
-    
+
+    let initialGoal: WorkoutGoal
+    let initialLevel: Int
+
     @State private var isGenerating = false
     @State private var showingErrorAlert = false
     @State private var errorMessage = ""
+
+    init(initialGoal: WorkoutGoal = .health, initialLevel: Int = 1) {
+        self.initialGoal = initialGoal
+        self.initialLevel = initialLevel
+    }
 
     var body: some View {
         NavigationStack {
@@ -21,28 +25,32 @@ struct WorkoutDashboardView: View {
                         Image(systemName: "figure.strengthtraining.functional")
                             .font(.system(size: 80))
                             .foregroundColor(.orange)
-                        
-                        VStack(spacing: 20) {
-                            Text("プランの条件を決めるぜ！")
-                                .font(.headline)
-                            
-                            Picker("目標", selection: $selectedGoal) {
-                                ForEach(WorkoutGoal.allCases) { goal in
-                                    Text(goal.rawValue).tag(goal)
-                                }
+
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("目標")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(initialGoal.rawValue)
+                                    .bold()
+                                    .foregroundColor(initialGoal.themeColor)
                             }
-                            .pickerStyle(.segmented)
-                            .padding(.horizontal)
-                            
-                            Stepper("現在のレベル: Lv.\(selectedLevel)", value: $selectedLevel, in: 1...10)
-                                .padding(.horizontal, 40)
+                            Divider()
+                            HStack {
+                                Text("レベル")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("Lv.\(initialLevel)")
+                                    .bold()
+                                    .foregroundColor(.orange)
+                            }
                         }
                         .padding()
                         .background(Color.white)
                         .cornerRadius(15)
                         .shadow(radius: 2)
                         .padding(.horizontal)
-                        
+
                         if isGenerating {
                             VStack(spacing: 15) {
                                 ProgressView()
@@ -52,15 +60,14 @@ struct WorkoutDashboardView: View {
                             }
                         } else {
                             Button(action: {
-                                print("選択された目標: \(selectedGoal.rawValue), レベル: \(selectedLevel)")
-                                generate7DayPlan(goal: selectedGoal, level: selectedLevel)
+                                generate7DayPlan(goal: initialGoal, level: initialLevel)
                             }) {
                                 Text("この条件で7日分生成！")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity)
                                     .padding()
-                                    .background(Color.orange)
+                                    .background(initialGoal.themeColor)
                                     .cornerRadius(15)
                             }
                             .padding(.horizontal, 40)
