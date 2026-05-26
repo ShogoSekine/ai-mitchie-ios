@@ -15,6 +15,7 @@ struct ai_mitchie_iosApp: App {
             NavigationStack {
                 GoalSelectionView()
             }
+            .preferredColorScheme(.light)
         }
         .modelContainer(for: DailySessionModel.self)
     }
