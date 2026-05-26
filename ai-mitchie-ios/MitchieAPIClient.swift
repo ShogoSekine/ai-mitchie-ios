@@ -28,6 +28,13 @@ class MitchieAPIClient {
         print("Loaded API Gateway URL from Info.plist: \(url)")
         return url
     }
+
+    private var apiKey: String {
+        guard let key = Bundle.main.object(forInfoDictionaryKey: "ApiGatewayKey") as? String else {
+            fatalError("Info.plistにApiGatewayKeyが設定されてないぜ！")
+        }
+        return key
+    }
     
     // 【ダッシュボード用】7日間のプランを生成するメソッド
     func fetch7DayPlan(goal: String, level: Int) async throws -> [DailySessionDTO] {
@@ -38,6 +45,7 @@ class MitchieAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue(apiKey, forHTTPHeaderField: "x-api-key")
         
         let body: [String: Any] = ["goal": goal, "level": level, "days": 7]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
