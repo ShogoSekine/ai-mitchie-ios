@@ -3,8 +3,9 @@ import Combine
 
 struct WorkoutTimerView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) private var modelContext
     let session: DailySessionModel
-    
+
     @State private var currentExerciseIndex = 0
     @State private var currentSet = 1
     @State private var isResting = false
@@ -12,13 +13,17 @@ struct WorkoutTimerView: View {
     @State private var totalDuration: Double = 0
     @State private var timerRunning = false
     @State private var isFinished = false
-    
+    @State private var startTime: Date = Date()
+
+    // howTo シート
+    @State private var showHowTo = false
+
     // 全体進捗管理
     @State private var currentStepCount = 1
     private var totalSteps: Int {
         session.exercises.map { $0.sets }.reduce(0, +)
     }
-    
+
     // モチベーションメッセージ
     @State private var mitchieMotivation: String = ""
     let motivations = [
@@ -30,13 +35,18 @@ struct WorkoutTimerView: View {
         "キツい時こそ笑え！筋肉が喜んでる証拠だ！😆",
         "今の君、世界で一番カッコいいぜ！🚀"
     ]
-    
+
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    
+
+    private var currentExercise: ExerciseModel? {
+        guard currentExerciseIndex < session.exercises.count else { return nil }
+        return session.exercises[currentExerciseIndex]
+    }
+
     var body: some View {
         ZStack {
             Color(white: 0.97).ignoresSafeArea()
-            
+
             VStack(spacing: 20) {
                 // --- 進捗インジケーターエリア ---
                 HStack(spacing: 30) {
@@ -44,19 +54,19 @@ struct WorkoutTimerView: View {
                         Text("この種目")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        if !isResting {
-                            Text("あと \(session.exercises[currentExerciseIndex].sets - currentSet + 1) セット")
+                        if let ex = currentExercise, !isResting {
+                            Text("あと \(ex.sets - currentSet + 1) セット")
                                 .font(.headline)
                                 .foregroundColor(.orange)
                         } else {
-                            Text("-") // 休憩中はハイフン表示
+                            Text("-")
                                 .font(.headline)
                                 .foregroundColor(.gray)
                         }
                     }
-                    
+
                     Divider().frame(height: 30)
-                    
+
                     VStack {
                         Text("ミッション完了まで")
                             .font(.caption)
@@ -72,13 +82,25 @@ struct WorkoutTimerView: View {
                 .shadow(color: .black.opacity(0.05), radius: 5)
                 .padding(.top)
 
-                VStack {
+                // 種目名 + ℹ️ ボタン
+                VStack(spacing: 4) {
                     Text("Day \(session.dayNumber)")
                         .font(.subheadline).bold().foregroundColor(.gray)
-                    Text(isResting ? "リラックス・タイム" : session.exercises[currentExerciseIndex].name)
-                        .font(.system(size: 32, weight: .black, design: .rounded))
-                        .foregroundColor(isResting ? .blue : .orange)
-                        .multilineTextAlignment(.center)
+                    HStack(spacing: 8) {
+                        Text(isResting ? "リラックス・タイム" : (currentExercise?.name ?? ""))
+                            .font(.system(size: 30, weight: .black, design: .rounded))
+                            .foregroundColor(isResting ? .blue : .orange)
+                            .multilineTextAlignment(.center)
+
+                        // ℹ️ ボタン（運動中・howTo がある場合のみ表示）
+                        if !isResting, let ex = currentExercise, !ex.howTo.isEmpty {
+                            Button(action: { showHowTo = true }) {
+                                Image(systemName: "info.circle")
+                                    .font(.title3)
+                                    .foregroundColor(.orange.opacity(0.7))
+                            }
+                        }
+                    }
                 }
 
                 // 円形タイマー
@@ -87,14 +109,14 @@ struct WorkoutTimerView: View {
                         .stroke(lineWidth: 20)
                         .opacity(0.1)
                         .foregroundColor(isResting ? .blue : .orange)
-                    
+
                     Circle()
                         .trim(from: 0, to: CGFloat(timeLeft / max(totalDuration, 1)))
                         .stroke(style: StrokeStyle(lineWidth: 20, lineCap: .round))
                         .foregroundColor(isResting ? .blue : .orange)
                         .rotationEffect(Angle(degrees: -90))
                         .animation(.linear(duration: 1.0), value: timeLeft)
-                    
+
                     VStack {
                         Text("\(Int(ceil(timeLeft)))")
                             .font(.system(size: 80, weight: .black, design: .rounded))
@@ -105,23 +127,22 @@ struct WorkoutTimerView: View {
                 .frame(width: 240, height: 240)
 
                 // Mitchieのメッセージエリア
-                VStack {
-                    Text(mitchieMotivation)
-                        .font(.headline)
-                        .italic()
-                        .multilineTextAlignment(.center)
-                        .frame(height: 100)
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(15)
-                        .shadow(color: .black.opacity(0.05), radius: 5)
-                }
-                .padding(.horizontal)
+                Text(mitchieMotivation)
+                    .font(.headline)
+                    .italic()
+                    .multilineTextAlignment(.center)
+                    .frame(height: 100)
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(15)
+                    .shadow(color: .black.opacity(0.05), radius: 5)
+                    .padding(.horizontal)
 
                 Spacer()
 
                 Button(action: { timerRunning.toggle() }) {
-                    Label(timerRunning ? "一時停止" : "スタート！", systemImage: timerRunning ? "pause.fill" : "play.fill")
+                    Label(timerRunning ? "一時停止" : "スタート！",
+                          systemImage: timerRunning ? "pause.fill" : "play.fill")
                         .font(.title3).bold()
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -132,49 +153,26 @@ struct WorkoutTimerView: View {
                 .padding(.horizontal, 40)
                 .padding(.bottom, 20)
             }
-            
-            // 完了画面オーバーレイ（変更なし）
-            if isFinished {
-                Color.orange.ignoresSafeArea()
-                    .transition(.opacity)
-                
-                VStack(spacing: 25) {
-                    Text("🏆 MISSION COMPLETE 🏆")
-                        .font(.system(size: 30, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                    
-                    Image(systemName: "figure.strengthtraining.functional")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 120, height: 120)
-                        .foregroundColor(.white)
-                    
-                    Text("よくやった！\n今日の君は昨日の君を超えたぜ！\nこの一歩が未来を変えるんだ！")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(.white)
-                        .padding()
 
-                    Button(action: { dismiss() }) {
-                        Text("ダッシュボードに戻る")
-                            .font(.headline)
-                            .foregroundColor(.orange)
-                            .padding(.horizontal, 40)
-                            .padding(.vertical, 15)
-                            .background(Color.white)
-                            .cornerRadius(30)
-                    }
-                }
-                .padding()
-                .transition(.scale)
+            // 完了画面オーバーレイ → WorkoutCompleteView に遷移
+            if isFinished {
+                NavigationLink(
+                    destination: WorkoutCompleteView(
+                        session: session,
+                        duration: Date().timeIntervalSince(startTime)
+                    ),
+                    isActive: .constant(true)
+                ) { EmptyView() }
+                .hidden()
             }
         }
         .navigationBarBackButtonHidden(timerRunning)
-        .onAppear { setupNextStep() }
+        .onAppear {
+            startTime = Date()
+            setupNextStep()
+        }
         .onReceive(timer) { _ in
             guard timerRunning && !isFinished else { return }
-            
             if timeLeft > 0 {
                 timeLeft -= 1
                 if Int(timeLeft) % 10 == 0 && !isResting {
@@ -184,11 +182,16 @@ struct WorkoutTimerView: View {
                 handleStepCompletion()
             }
         }
+        .sheet(isPresented: $showHowTo) {
+            if let ex = currentExercise {
+                ExerciseHowToSheet(exercise: ex)
+            }
+        }
     }
-    
-    // ロジック部分は変更なし
+
+    // MARK: - ロジック
     func setupNextStep() {
-        let currentExercise = session.exercises[currentExerciseIndex]
+        guard let currentExercise else { return }
         if isResting {
             timeLeft = Double(currentExercise.restSeconds)
             totalDuration = Double(currentExercise.restSeconds)
@@ -199,15 +202,15 @@ struct WorkoutTimerView: View {
             updateMotivation()
         }
     }
-    
+
     func handleStepCompletion() {
         if !isResting {
             isResting = true
             setupNextStep()
         } else {
             isResting = false
-            let currentExercise = session.exercises[currentExerciseIndex]
-            
+            guard let currentExercise else { return }
+
             if currentSet < currentExercise.sets {
                 currentSet += 1
                 currentStepCount += 1
@@ -225,7 +228,7 @@ struct WorkoutTimerView: View {
             }
         }
     }
-    
+
     func updateMotivation() {
         mitchieMotivation = motivations.randomElement() ?? ""
     }
