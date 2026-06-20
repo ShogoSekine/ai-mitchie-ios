@@ -77,6 +77,12 @@ class MitchieAPIClient {
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        
+        // デバッグログ
+        print("🔗 リクエスト URL: \(url)")
+        print("🔑 API キー: \(apiKey.prefix(10))...")
+        print("📤 リクエスト本体: \(body)")
+        
         return request
     }
 
@@ -102,10 +108,12 @@ class MitchieAPIClient {
         let request = try makeRequest(path: "/plan", body: ["goal": goal, "level": level, "days": 7])
         let data = try await perform(request)
         if let json = String(data: data, encoding: .utf8) {
-            print("📥 /plan レスポンス: \(json.prefix(200))")
+            print("📥 /plan レスポンス全体: \(json)")
         }
         do {
-            return try JSONDecoder().decode([DailySessionDTO].self, from: data)
+            let sessions = try JSONDecoder().decode([DailySessionDTO].self, from: data)
+            print("✅ デコード成功: \(sessions.count)日分のデータを取得")
+            return sessions
         } catch {
             print("❌ /plan デコードエラー: \(error)")
             throw APIError.decodingError

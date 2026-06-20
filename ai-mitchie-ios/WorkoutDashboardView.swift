@@ -100,7 +100,7 @@ struct WorkoutDashboardView: View {
     // MARK: - セッションリスト
     private var sessionListView: some View {
         VStack(spacing: 12) {
-            ForEach(sessions) { session in
+            ForEach(sessions, id: \.dayNumber) { session in
                 SessionRowView(
                     session: session,
                     isToday: session.dayNumber == todayDayNumber,
@@ -150,8 +150,9 @@ struct WorkoutDashboardView: View {
                     isGenerating = false
                 }
             } catch {
+                print("❌ エラー詳細: \(error)")
                 await MainActor.run {
-                    errorMessage = "通信エラーだぜ！少し時間を置いてから試してくれ！"
+                    errorMessage = "通信エラーだぜ！少し時間を置いてから試してくれ！\n\nエラー: \(error.localizedDescription)"
                     showingErrorAlert = true
                     isGenerating = false
                 }
@@ -186,9 +187,21 @@ private struct SessionRowView: View {
                         .background(isToday ? Color.orange : Color.orange.opacity(0.15))
                         .clipShape(Circle())
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        if isToday {
-                            Text("今日 🔥").font(.caption2).foregroundColor(.orange)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            if isToday {
+                                Text("今日 🔥").font(.caption2).foregroundColor(.orange)
+                            }
+                            if session.exercises.isEmpty {
+                                Text("休息日")
+                                    .font(.caption2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(Color.gray)
+                                    .cornerRadius(4)
+                            }
                         }
                         Text(session.mitchieQuote)
                             .font(.subheadline)
@@ -206,32 +219,49 @@ private struct SessionRowView: View {
             .buttonStyle(.plain)
 
             // 種目リスト（展開時）
-            if isExpanded && !session.exercises.isEmpty {
+            if isExpanded {
                 Divider()
-                VStack(spacing: 0) {
-                    ForEach(session.exercises) { exercise in
-                        ExerciseRowInDashboard(exercise: exercise, onInfoTap: { onInfoTap(exercise) })
-                        if exercise.id != session.exercises.last?.id {
-                            Divider().padding(.leading, 16)
+                if session.exercises.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "bed.double")
+                            .font(.title2)
+                            .foregroundColor(.gray)
+                        Text("本日はお休みです")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                        Text("体を休めて、次のセッションに備えましょう！")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 20)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(session.exercises) { exercise in
+                            ExerciseRowInDashboard(exercise: exercise, onInfoTap: { onInfoTap(exercise) })
+                            if exercise.id != session.exercises.last?.id {
+                                Divider().padding(.leading, 16)
+                            }
                         }
                     }
-                }
 
-                // タイマーへのリンク
-                if !session.isCompleted {
-                    NavigationLink(destination: WorkoutTimerView(session: session)) {
-                        HStack {
-                            Image(systemName: "play.circle.fill")
-                            Text("このセッションを始める！")
-                                .font(.subheadline).bold()
+                    // タイマーへのリンク
+                    if !session.isCompleted {
+                        NavigationLink(destination: WorkoutTimerView(session: session)) {
+                            HStack {
+                                Image(systemName: "play.circle.fill")
+                                Text("このセッションを始める！")
+                                    .font(.subheadline).bold()
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.orange)
+                            .cornerRadius(10)
+                            .padding([.horizontal, .bottom], 12)
+                            .padding(.top, 8)
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.orange)
-                        .cornerRadius(10)
-                        .padding([.horizontal, .bottom], 12)
-                        .padding(.top, 8)
                     }
                 }
             }

@@ -4,5 +4,7 @@
 <dict>
 	<key>ApiGatewayUrl</key>
 	<string>$(API_GATEWAY_URL)</string>
+	<key>ApiGatewayKey</key>
+	<string>$(API_GATEWAY_KEY)</string>
 </dict>
 </plist>

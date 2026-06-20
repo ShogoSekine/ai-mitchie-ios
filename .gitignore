@@ -43,3 +43,4 @@ Carthage/Checkouts/
 # APIキーなどをローカルのconfigファイルに隠す場合用
 .env
 *.xcconfig
+**/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
