@@ -18,9 +18,13 @@ struct WorkoutDashboardView: View {
     }
     private var level: Int { profile?.level ?? 1 }
 
-    // 今日のdayNumber（プランなしの場合は未完了の先頭）
+    // 今日のdayNumber（プラン作成日から算出）
     private var todayDayNumber: Int {
-        sessions.first(where: { !$0.isCompleted })?.dayNumber ?? -1
+        let today = Calendar.current.startOfDay(for: Date())
+        return sessions.sorted { $0.dayNumber < $1.dayNumber }.first(where: { session in
+            guard let scheduledDate = session.scheduledDate else { return false }
+            return Calendar.current.isDate(scheduledDate, inSameDayAs: today)
+        })?.dayNumber ?? -1
     }
 
     var body: some View {
@@ -35,6 +39,9 @@ struct WorkoutDashboardView: View {
             .padding(.top, 8)
         }
         .navigationTitle("Mitchie 7Days")
+        .onAppear {
+            updateSessionAvailability()
+        }
         .alert("エラーだぜ！", isPresented: $showingErrorAlert) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -129,6 +136,9 @@ struct WorkoutDashboardView: View {
                     level: level
                 )
                 await MainActor.run {
+                    let plan = WorkoutPlan(goal: goal.rawValue, level: level)
+                    modelContext.insert(plan)
+
                     for dto in dtos {
                         let exercises = dto.exercises.map {
                             ExerciseModel(
@@ -139,13 +149,17 @@ struct WorkoutDashboardView: View {
                                 howTo: $0.howTo
                             )
                         }
+                        let scheduledDate = Calendar.current.date(byAdding: .day, value: dto.dayNumber - 1, to: plan.generatedAt)
                         let newSession = DailySessionModel(
                             dayNumber: dto.dayNumber,
                             mitchieQuote: dto.mitchieQuote,
-                            exercises: exercises
+                            exercises: exercises,
+                            scheduledDate: scheduledDate
                         )
+                        plan.sessions.append(newSession)
                         modelContext.insert(newSession)
                     }
+
                     try? modelContext.save()
                     isGenerating = false
                 }
@@ -163,6 +177,11 @@ struct WorkoutDashboardView: View {
     private func resetPlan() {
         try? modelContext.delete(model: DailySessionModel.self)
     }
+
+    private func updateSessionAvailability() {
+        guard !sessions.isEmpty else { return }
+        sessions.forEach { $0.updateAvailability(in: sessions, context: modelContext) }
+    }
 }
 
 // MARK: - セッション行
@@ -172,6 +191,14 @@ private struct SessionRowView: View {
     let onInfoTap: (ExerciseModel) -> Void
 
     @State private var isExpanded = false
+    @Environment(\.modelContext) private var modelContext
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "M/d"
+        return formatter.string(from: date)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -201,6 +228,11 @@ private struct SessionRowView: View {
                                     .padding(.vertical, 2)
                                     .background(Color.gray)
                                     .cornerRadius(4)
+                            }
+                            if let scheduledDate = session.scheduledDate {
+                                Text(formatDate(scheduledDate))
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
                             }
                         }
                         Text(session.mitchieQuote)
@@ -247,7 +279,7 @@ private struct SessionRowView: View {
                     }
 
                     // タイマーへのリンク
-                    if !session.isCompleted {
+                    if session.canStartWorkout {
                         NavigationLink(destination: WorkoutTimerView(session: session)) {
                             HStack {
                                 Image(systemName: "play.circle.fill")
@@ -265,6 +297,9 @@ private struct SessionRowView: View {
                     }
                 }
             }
+        }
+        .onAppear {
+            session.markAsCompletedIfRestDay(in: modelContext)
         }
         .background(session.isCompleted ? Color.gray.opacity(0.06) : Color.white)
         .cornerRadius(14)

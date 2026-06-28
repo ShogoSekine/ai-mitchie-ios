@@ -167,6 +167,8 @@ struct WorkoutCompleteView: View {
     private func savePraiseAndUpdateProfile(praise: String) {
         // セッション完了フラグ
         session.isCompleted = true
+        session.isMissed = false
+        session.isBlockedByPreviousMiss = false
 
         // WorkoutLog保存
         let log = WorkoutLog(
