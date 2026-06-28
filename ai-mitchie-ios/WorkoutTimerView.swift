@@ -44,10 +44,56 @@ struct WorkoutTimerView: View {
     }
 
     var body: some View {
-        ZStack {
-            Color(white: 0.97).ignoresSafeArea()
+        if session.isRestDay {
+            VStack(spacing: 16) {
+                Image(systemName: "bed.double")
+                    .font(.system(size: 56))
+                    .foregroundColor(.gray)
+                Text("本日はお休みです")
+                    .font(.title2).bold()
+                Text("今日のトレーニングは完了扱いです。体をしっかり休めて、次の一歩に備えようぜ！")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("戻る") {
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
+            .background(Color(white: 0.97).ignoresSafeArea())
+            .onAppear {
+                session.markAsCompletedIfRestDay(in: modelContext)
+            }
+        } else if !session.canStartWorkout {
+            VStack(spacing: 16) {
+                Image(systemName: "lock.circle")
+                    .font(.system(size: 56))
+                    .foregroundColor(.gray)
+                Text(session.isMissed ? "この日のトレーニングをやり忘れたため、以降は開放されません" : "まだこの日のトレーニングは開始できません")
+                    .font(.title2).bold()
+                    .multilineTextAlignment(.center)
+                Text("予定日を迎えるまで、他の日のトレーニングは選べません。")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Button("戻る") {
+                    dismiss()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
+            .background(Color(white: 0.97).ignoresSafeArea())
+            .onAppear {
+                session.updateAvailability(in: [session], context: modelContext)
+            }
+        } else {
+            ZStack {
+                Color(white: 0.97).ignoresSafeArea()
 
-            VStack(spacing: 20) {
+                VStack(spacing: 20) {
                 // --- 進捗インジケーターエリア ---
                 HStack(spacing: 30) {
                     VStack {
@@ -165,26 +211,27 @@ struct WorkoutTimerView: View {
                 ) { EmptyView() }
                 .hidden()
             }
-        }
-        .navigationBarBackButtonHidden(timerRunning)
-        .onAppear {
-            startTime = Date()
-            setupNextStep()
-        }
-        .onReceive(timer) { _ in
-            guard timerRunning && !isFinished else { return }
-            if timeLeft > 0 {
-                timeLeft -= 1
-                if Int(timeLeft) % 10 == 0 && !isResting {
-                    updateMotivation()
-                }
-            } else {
-                handleStepCompletion()
             }
-        }
-        .sheet(isPresented: $showHowTo) {
-            if let ex = currentExercise {
-                ExerciseHowToSheet(exercise: ex)
+            .navigationBarBackButtonHidden(timerRunning)
+            .onAppear {
+                startTime = Date()
+                setupNextStep()
+            }
+            .onReceive(timer) { _ in
+                guard timerRunning && !isFinished else { return }
+                if timeLeft > 0 {
+                    timeLeft -= 1
+                    if Int(timeLeft) % 10 == 0 && !isResting {
+                        updateMotivation()
+                    }
+                } else {
+                    handleStepCompletion()
+                }
+            }
+            .sheet(isPresented: $showHowTo) {
+                if let ex = currentExercise {
+                    ExerciseHowToSheet(exercise: ex)
+                }
             }
         }
     }

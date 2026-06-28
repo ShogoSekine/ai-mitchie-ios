@@ -1,33 +1,9 @@
 {
   "images" : [
     {
-      "filename" : "AppIcon.png",
-      "idiom" : "iphone",
-      "scale" : "2x",
-      "size" : "120x120"
-    },
-    {
-      "filename" : "AppIcon-180.png",
-      "idiom" : "iphone",
-      "scale" : "3x",
-      "size" : "120x120"
-    },
-    {
-      "filename" : "AppIcon-152.png",
-      "idiom" : "ipad",
-      "scale" : "2x",
-      "size" : "152x152"
-    },
-    {
-      "filename" : "AppIcon-167.png",
-      "idiom" : "ipad",
-      "scale" : "2x",
-      "size" : "167x167"
-    },
-    {
-      "filename" : "AppIcon-1024.png",
-      "idiom" : "ios-marketing",
-      "scale" : "1x",
+      "filename" : "スクリーンショット 2026-06-20 18.06.02.png",
+      "idiom" : "universal",
+      "platform" : "ios",
       "size" : "1024x1024"
     }
   ],

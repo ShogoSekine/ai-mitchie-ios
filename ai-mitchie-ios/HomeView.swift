@@ -4,6 +4,7 @@ import SwiftData
 struct HomeView: View {
     @Query private var profiles: [UserProfile]
     @Query(sort: \DailySessionModel.dayNumber) private var sessions: [DailySessionModel]
+    @Environment(\.modelContext) private var modelContext
 
     @State private var showFollowup = false
     @State private var showProfile = false
@@ -14,12 +15,19 @@ struct HomeView: View {
     @Query private var plans: [WorkoutPlan]
     private var todaySession: DailySessionModel? {
         guard let plan = plans.first(where: { $0.isActive }) else {
-            // WorkoutPlanがない場合はDailySessionModel直接参照（既存互換）
-            return sessions.first(where: { !$0.isCompleted })
+            let today = Calendar.current.startOfDay(for: Date())
+            return sessions.sorted { $0.dayNumber < $1.dayNumber }.first(where: { session in
+                guard let scheduledDate = session.scheduledDate else { return false }
+                return Calendar.current.isDate(scheduledDate, inSameDayAs: today)
+            })
         }
-        let dayIndex = Calendar.current.dateComponents([.day], from: plan.generatedAt, to: Date()).day ?? 0
-        let targetDay = min(dayIndex + 1, 7)
-        return plan.sessions.first(where: { $0.dayNumber == targetDay })
+
+        let today = Calendar.current.startOfDay(for: Date())
+        let sortedSessions = plan.sessions.sorted { $0.dayNumber < $1.dayNumber }
+        return sortedSessions.first(where: { session in
+            guard let scheduledDate = session.scheduledDate else { return false }
+            return Calendar.current.isDate(scheduledDate, inSameDayAs: today)
+        }) ?? sortedSessions.first(where: { $0.canStartWorkout })
     }
 
     private let dailyMessages = [
@@ -63,7 +71,10 @@ struct HomeView: View {
             }
         }
         .navigationBarHidden(true)
-        .onAppear(perform: checkFollowup)
+        .onAppear {
+        checkFollowup()
+        updateSessionAvailability()
+    }
         .sheet(isPresented: $showFollowup) {
             if let profile {
                 WorkoutFollowupView(profile: profile)
@@ -151,11 +162,19 @@ struct HomeView: View {
                 // プラン未生成
                 noPlanCard
             } else if let session = todaySession {
-                // 今日のセッションカード
-                NavigationLink(destination: WorkoutTimerView(session: session)) {
-                    TodaySessionCard(session: session)
+                Group {
+                    if session.canStartWorkout {
+                        NavigationLink(destination: WorkoutTimerView(session: session)) {
+                            TodaySessionCard(session: session)
+                        }
+                    } else {
+                        TodaySessionCard(session: session)
+                    }
                 }
                 .padding(.horizontal)
+                .onAppear {
+                    session.markAsCompletedIfRestDay(in: modelContext)
+                }
 
                 // ダッシュボードへのリンク
                 NavigationLink(destination: WorkoutDashboardView()) {
@@ -237,6 +256,11 @@ struct HomeView: View {
             showFollowup = true
         }
     }
+
+    private func updateSessionAvailability() {
+        guard !sessions.isEmpty else { return }
+        sessions.forEach { $0.updateAvailability(in: sessions, context: modelContext) }
+    }
 }
 
 // MARK: - 今日のセッションカード
@@ -244,21 +268,23 @@ private struct TodaySessionCard: View {
     let session: DailySessionModel
 
     var body: some View {
-        HStack(spacing: 16) {
+        let isRestDay = session.isRestDay
+
+        return HStack(spacing: 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(session.isCompleted ? Color.green.opacity(0.15) : Color.orange.opacity(0.15))
+                    .fill(isRestDay ? Color.gray.opacity(0.15) : (session.isCompleted ? Color.green.opacity(0.15) : Color.orange.opacity(0.15)))
                     .frame(width: 56, height: 56)
-                Image(systemName: session.isCompleted ? "checkmark.circle.fill" : "play.circle.fill")
+                Image(systemName: isRestDay ? "bed.double" : (session.isCompleted ? "checkmark.circle.fill" : "play.circle.fill"))
                     .font(.system(size: 28))
-                    .foregroundColor(session.isCompleted ? .green : .orange)
+                    .foregroundColor(isRestDay ? .gray : (session.isCompleted ? .green : .orange))
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Day \(session.dayNumber)")
                     .font(.caption).bold()
-                    .foregroundColor(session.isCompleted ? .green : .orange)
-                Text(session.isCompleted ? "今日の分は完了だぜ！✅" : "今日のトレーニングを始める！")
+                    .foregroundColor(session.isRestDay ? .gray : (session.isCompleted ? .green : .orange))
+                Text(session.isRestDay ? "本日はお休みです" : (session.isCompleted ? "今日の分は完了だぜ！✅" : (session.isMissed ? "この日のトレーニングをやり忘れたぜ…" : "今日のトレーニングを始める！")))
                     .font(.headline)
                     .foregroundColor(.primary)
                 Text(session.mitchieQuote)
@@ -267,7 +293,7 @@ private struct TodaySessionCard: View {
                     .lineLimit(1)
             }
             Spacer()
-            if !session.isCompleted {
+            if session.canStartWorkout {
                 Image(systemName: "chevron.right")
                     .foregroundColor(.orange)
             }

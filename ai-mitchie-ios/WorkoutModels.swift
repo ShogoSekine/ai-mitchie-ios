@@ -29,12 +29,65 @@ class DailySessionModel {
     var mitchieQuote: String
     @Relationship(deleteRule: .cascade) var exercises: [ExerciseModel]
     var isCompleted: Bool = false
+    var scheduledDate: Date?
+    var isMissed: Bool = false
+    var isBlockedByPreviousMiss: Bool = false
 
-    init(dayNumber: Int, mitchieQuote: String, exercises: [ExerciseModel], isCompleted: Bool = false) {
+    var isRestDay: Bool {
+        exercises.isEmpty
+    }
+
+    var canStartWorkout: Bool {
+        guard let scheduledDate else { return false }
+        let today = Calendar.current.startOfDay(for: Date())
+        let sessionDay = Calendar.current.startOfDay(for: scheduledDate)
+        return !isCompleted && !isRestDay && !isMissed && !isBlockedByPreviousMiss && sessionDay == today
+    }
+
+    init(dayNumber: Int, mitchieQuote: String, exercises: [ExerciseModel], isCompleted: Bool = false, scheduledDate: Date? = nil) {
         self.dayNumber = dayNumber
         self.mitchieQuote = mitchieQuote
         self.exercises = exercises
         self.isCompleted = isCompleted
+        self.scheduledDate = scheduledDate
+    }
+
+    func markAsCompletedIfRestDay(in context: ModelContext) {
+        guard isRestDay && !isCompleted else { return }
+        isCompleted = true
+        try? context.save()
+    }
+
+    func updateAvailability(in sessions: [DailySessionModel], now: Date = Date(), context: ModelContext? = nil) {
+        let todayStart = Calendar.current.startOfDay(for: now)
+        let sortedSessions = sessions.sorted { $0.dayNumber < $1.dayNumber }
+        var shouldBlock = false
+
+        for session in sortedSessions {
+            if session.isRestDay || session.isCompleted || session.scheduledDate == nil {
+                session.isMissed = false
+                session.isBlockedByPreviousMiss = false
+                continue
+            }
+
+            let sessionDay = Calendar.current.startOfDay(for: session.scheduledDate!)
+            if shouldBlock || sessionDay > todayStart {
+                session.isBlockedByPreviousMiss = shouldBlock
+                session.isMissed = false
+                continue
+            }
+
+            if sessionDay < todayStart {
+                session.isMissed = true
+                session.isBlockedByPreviousMiss = false
+                shouldBlock = true
+            } else {
+                session.isMissed = false
+                session.isBlockedByPreviousMiss = false
+            }
+        }
+
+        try? context?.save()
     }
 }
 
