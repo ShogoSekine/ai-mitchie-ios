@@ -198,8 +198,11 @@ struct WorkoutCompleteView: View {
     }
 
     private func goHome() {
-        // NavigationStack のルートまで戻る
+        // WorkoutCompleteView と WorkoutTimerView の2層を抜けて HomeView に戻る
         dismiss()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            dismiss()
+        }
     }
 }
 
