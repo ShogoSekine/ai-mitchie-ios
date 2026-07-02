@@ -4,7 +4,7 @@ import SwiftData
 struct WorkoutCompleteView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var profiles: [UserProfile]
-    @Environment(\.dismiss) private var dismiss
+    @Environment(NavigationCoordinator.self) private var coordinator
 
     let session: DailySessionModel
     let duration: TimeInterval
@@ -198,11 +198,8 @@ struct WorkoutCompleteView: View {
     }
 
     private func goHome() {
-        // WorkoutCompleteView と WorkoutTimerView の2層を抜けて HomeView に戻る
-        dismiss()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            dismiss()
-        }
+        // NavigationStackをルートからリセットしてHomeViewに確実に戻る
+        coordinator.resetToRoot()
     }
 }
 

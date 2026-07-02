@@ -13,6 +13,7 @@ struct WorkoutTimerView: View {
     @State private var totalDuration: Double = 0
     @State private var timerRunning = false
     @State private var isFinished = false
+    @State private var finishDuration: TimeInterval = 0
     @State private var startTime: Date = Date()
 
     // howTo シート
@@ -200,17 +201,10 @@ struct WorkoutTimerView: View {
                 .padding(.bottom, 20)
             }
 
-            // 完了画面オーバーレイ → WorkoutCompleteView に遷移
-            if isFinished {
-                NavigationLink(
-                    destination: WorkoutCompleteView(
-                        session: session,
-                        duration: Date().timeIntervalSince(startTime)
-                    ),
-                    isActive: .constant(true)
-                ) { EmptyView() }
-                .hidden()
+            // 完了画面へは .navigationDestination で遷移（.constant(true) を使わない）
             }
+            .navigationDestination(isPresented: $isFinished) {
+                WorkoutCompleteView(session: session, duration: finishDuration)
             }
             .navigationBarBackButtonHidden(timerRunning)
             .onAppear {
@@ -269,6 +263,7 @@ struct WorkoutTimerView: View {
                 setupNextStep()
             } else {
                 timerRunning = false
+                finishDuration = Date().timeIntervalSince(startTime)
                 withAnimation(.spring()) {
                     isFinished = true
                 }

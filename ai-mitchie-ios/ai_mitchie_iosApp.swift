@@ -8,11 +8,24 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - ナビゲーション管理（ルートへのリセット用）
+@Observable
+class NavigationCoordinator {
+    var navigationID = UUID()
+
+    func resetToRoot() {
+        navigationID = UUID()
+    }
+}
+
 @main
 struct ai_mitchie_iosApp: App {
+    @State private var coordinator = NavigationCoordinator()
+
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(coordinator)
                 .preferredColorScheme(.light)
         }
         .modelContainer(for: [
@@ -28,12 +41,15 @@ struct ai_mitchie_iosApp: App {
 // MARK: - RootView（初回起動判定）
 struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @Environment(NavigationCoordinator.self) private var coordinator
 
     var body: some View {
         if hasCompletedOnboarding {
             NavigationStack {
                 HomeView()
             }
+            // IDが変わるとNavigationStackが再生成され、ルートに戻る
+            .id(coordinator.navigationID)
         } else {
             OnboardingView()
         }
