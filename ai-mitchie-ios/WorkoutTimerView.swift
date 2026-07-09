@@ -100,7 +100,7 @@ struct WorkoutTimerView: View {
             ZStack {
                 Color(white: 0.97).ignoresSafeArea()
 
-                VStack(spacing: 20) {
+                VStack(spacing: 12) {
                 // --- 進捗インジケーターエリア ---
                 HStack(spacing: 30) {
                     VStack {
@@ -156,56 +156,61 @@ struct WorkoutTimerView: View {
                     }
                 }
 
-                // 円形タイマー
+                // タイマー × フォーム画像 合成カード
                 ZStack {
-                    Circle()
-                        .stroke(lineWidth: 20)
-                        .opacity(0.1)
-                        .foregroundColor(isResting ? .blue : .orange)
-
-                    Circle()
-                        .trim(from: 0, to: CGFloat(timeLeft / max(totalDuration, 1)))
-                        .stroke(style: StrokeStyle(lineWidth: 20, lineCap: .round))
-                        .foregroundColor(isResting ? .blue : .orange)
-                        .rotationEffect(Angle(degrees: -90))
-                        .animation(.linear(duration: 1.0), value: timeLeft)
-
-                    VStack {
-                        Text("\(Int(ceil(timeLeft)))")
-                            .font(.system(size: 80, weight: .black, design: .rounded))
-                        Text("SECONDS")
-                            .font(.caption).bold()
-                    }
-                }
-                .frame(width: 240, height: 240)
-
-                // フォーム画像（運動中のみ表示）
-                if !isResting {
-                    ZStack {
+                    if !isResting {
+                        // フォーム画像（背景）
                         Image(formImages[formImageIndex])
                             .resizable()
-                            .scaledToFill()
-                            .frame(height: 180)
-                            .clipped()
-                            .cornerRadius(15)
+                            .scaledToFit()
+                            .cornerRadius(20)
                             .id(formImageIndex)
                             .transition(.opacity)
+                            .animation(.easeInOut(duration: 0.5), value: formImageIndex)
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 180)
-                    .cornerRadius(15)
-                    .clipped()
-                    .padding(.horizontal)
-                    .animation(.easeInOut(duration: 0.5), value: formImageIndex)
+
+                    // 円形タイマー（前面オーバーレイ）
+                    ZStack {
+                        // フロストガラス背景
+                        if !isResting {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 190, height: 190)
+                        }
+
+                        Circle()
+                            .stroke(lineWidth: 18)
+                            .opacity(0.1)
+                            .foregroundColor(isResting ? .blue : .orange)
+                            .frame(width: 190, height: 190)
+
+                        Circle()
+                            .trim(from: 0, to: CGFloat(timeLeft / max(totalDuration, 1)))
+                            .stroke(style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                            .foregroundColor(isResting ? .blue : .orange)
+                            .rotationEffect(Angle(degrees: -90))
+                            .animation(.linear(duration: 1.0), value: timeLeft)
+                            .frame(width: 190, height: 190)
+
+                        VStack(spacing: 0) {
+                            Text("\(Int(ceil(timeLeft)))")
+                                .font(.system(size: 72, weight: .black, design: .rounded))
+                            Text("SECONDS")
+                                .font(.caption).bold()
+                        }
+                    }
                 }
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 280)
+                .padding(.horizontal)
 
                 // Mitchieのメッセージエリア
                 Text(mitchieMotivation)
                     .font(.headline)
                     .italic()
                     .multilineTextAlignment(.center)
-                    .frame(height: 100)
                     .padding()
+                    .frame(maxWidth: .infinity)
                     .background(Color.white)
                     .cornerRadius(15)
                     .shadow(color: .black.opacity(0.05), radius: 5)
