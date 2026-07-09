@@ -19,6 +19,12 @@ struct WorkoutTimerView: View {
     // howTo シート
     @State private var showHowTo = false
 
+    // フォーム画像コマ送り
+    private let formImages = ["squat_start", "squat_bottom"]
+    @State private var formImageIndex = 0
+    private let formImageInterval = 2  // 何秒おきに切り替えるか
+    @State private var formImageTick = 0  // タイマーカウンタ
+
     // 全体進捗管理
     @State private var currentStepCount = 1
     private var totalSteps: Int {
@@ -173,6 +179,26 @@ struct WorkoutTimerView: View {
                 }
                 .frame(width: 240, height: 240)
 
+                // フォーム画像（運動中のみ表示）
+                if !isResting {
+                    ZStack {
+                        Image(formImages[formImageIndex])
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 180)
+                            .clipped()
+                            .cornerRadius(15)
+                            .id(formImageIndex)
+                            .transition(.opacity)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 180)
+                    .cornerRadius(15)
+                    .clipped()
+                    .padding(.horizontal)
+                    .animation(.easeInOut(duration: 0.5), value: formImageIndex)
+                }
+
                 // Mitchieのメッセージエリア
                 Text(mitchieMotivation)
                     .font(.headline)
@@ -218,6 +244,16 @@ struct WorkoutTimerView: View {
                     if Int(timeLeft) % 10 == 0 && !isResting {
                         updateMotivation()
                     }
+                    // フォーム画像のコマ送り（運動中のみ）
+                    if !isResting {
+                        formImageTick += 1
+                        if formImageTick >= formImageInterval {
+                            formImageTick = 0
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                formImageIndex = (formImageIndex + 1) % formImages.count
+                            }
+                        }
+                    }
                 } else {
                     handleStepCompletion()
                 }
@@ -240,6 +276,8 @@ struct WorkoutTimerView: View {
         } else {
             timeLeft = Double(currentExercise.workSeconds)
             totalDuration = Double(currentExercise.workSeconds)
+            formImageTick = 0
+            formImageIndex = 0
             updateMotivation()
         }
     }
