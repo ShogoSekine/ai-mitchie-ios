@@ -19,6 +19,9 @@ struct WorkoutTimerView: View {
     // howTo シート
     @State private var showHowTo = false
 
+    // タイマー縮小表示
+    @State private var isTimerMinimized = false
+
     // フォーム画像コマ送り
     private let formImages = ["squat_start", "squat_bottom"]
     @State private var formImageIndex = 0
@@ -157,52 +160,22 @@ struct WorkoutTimerView: View {
                 }
 
                 // タイマー × フォーム画像 合成カード
-                ZStack {
-                    if !isResting {
-                        // フォーム画像（背景）
-                        Image(formImages[formImageIndex])
-                            .resizable()
-                            .scaledToFit()
-                            .cornerRadius(20)
-                            .id(formImageIndex)
-                            .transition(.opacity)
-                            .animation(.easeInOut(duration: 0.5), value: formImageIndex)
-                    }
-
-                    // 円形タイマー（前面オーバーレイ）
-                    ZStack {
-                        // フロストガラス背景
-                        if !isResting {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 190, height: 190)
+                if !isResting {
+                    Image(formImages[formImageIndex])
+                        .resizable()
+                        .scaledToFit()
+                        .cornerRadius(20)
+                        .id(formImageIndex)
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 0.5), value: formImageIndex)
+                        .overlay(alignment: isTimerMinimized ? .topTrailing : .center) {
+                            timerCircleView
+                                .padding(isTimerMinimized ? 10 : 0)
                         }
-
-                        Circle()
-                            .stroke(lineWidth: 18)
-                            .opacity(0.1)
-                            .foregroundColor(isResting ? .blue : .orange)
-                            .frame(width: 190, height: 190)
-
-                        Circle()
-                            .trim(from: 0, to: CGFloat(timeLeft / max(totalDuration, 1)))
-                            .stroke(style: StrokeStyle(lineWidth: 18, lineCap: .round))
-                            .foregroundColor(isResting ? .blue : .orange)
-                            .rotationEffect(Angle(degrees: -90))
-                            .animation(.linear(duration: 1.0), value: timeLeft)
-                            .frame(width: 190, height: 190)
-
-                        VStack(spacing: 0) {
-                            Text("\(Int(ceil(timeLeft)))")
-                                .font(.system(size: 72, weight: .black, design: .rounded))
-                            Text("SECONDS")
-                                .font(.caption).bold()
-                        }
-                    }
+                        .padding(.horizontal)
+                } else {
+                    timerCircleView
                 }
-                .frame(maxWidth: .infinity)
-                .frame(minHeight: 280)
-                .padding(.horizontal)
 
                 // Mitchieのメッセージエリア
                 Text(mitchieMotivation)
@@ -271,6 +244,58 @@ struct WorkoutTimerView: View {
         }
     }
 
+    // MARK: - タイマーUI
+
+    private var timerCircleView: some View {
+        let size: CGFloat = isTimerMinimized ? 80 : 190
+        let strokeWidth: CGFloat = isTimerMinimized ? 8 : 18
+        let fontSize: CGFloat = isTimerMinimized ? 24 : 72
+        let color = isResting ? Color.blue : Color.orange
+
+        return ZStack {
+            if !isResting {
+                if isTimerMinimized {
+                    Circle()
+                        .fill(Color.black.opacity(0.6))
+                        .frame(width: size, height: size)
+                } else {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: size, height: size)
+                }
+            }
+            Circle()
+                .stroke(lineWidth: strokeWidth)
+                .opacity(0.15)
+                .foregroundColor(color)
+                .frame(width: size, height: size)
+            Circle()
+                .trim(from: 0, to: CGFloat(timeLeft / max(totalDuration, 1)))
+                .stroke(style: StrokeStyle(lineWidth: strokeWidth, lineCap: .round))
+                .foregroundColor(color)
+                .rotationEffect(.degrees(-90))
+                .animation(.linear(duration: 1.0), value: timeLeft)
+                .frame(width: size, height: size)
+            VStack(spacing: 0) {
+                Text("\(Int(ceil(timeLeft)))")
+                    .font(.system(size: fontSize, weight: .black, design: .rounded))
+                    .foregroundColor(isTimerMinimized && !isResting ? .white : .primary)
+                if !isTimerMinimized {
+                    Text("SECONDS")
+                        .font(.caption).bold()
+                }
+            }
+        }
+        .frame(width: size, height: size)
+        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: isTimerMinimized)
+        .onTapGesture {
+            guard !isResting else { return }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                isTimerMinimized.toggle()
+            }
+        }
+    }
+
     // MARK: - ロジック
     func setupNextStep() {
         guard let currentExercise else { return }
@@ -278,6 +303,7 @@ struct WorkoutTimerView: View {
             timeLeft = Double(currentExercise.restSeconds)
             totalDuration = Double(currentExercise.restSeconds)
             mitchieMotivation = "しっかり休んで、次の爆発に備えようぜ！🍵"
+            isTimerMinimized = false
         } else {
             timeLeft = Double(currentExercise.workSeconds)
             totalDuration = Double(currentExercise.workSeconds)
