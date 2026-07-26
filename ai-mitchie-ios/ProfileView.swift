@@ -3,11 +3,9 @@ import SwiftData
 
 struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
     @Query private var profiles: [UserProfile]
 
     @State private var isEditing = false
-    @State private var showResetConfirm = false
 
     // 編集用バッファ
     @State private var editName: String = ""
@@ -119,16 +117,6 @@ struct ProfileView: View {
                 }
             }
 
-            // プランリセット
-            Section {
-                Button(role: .destructive) {
-                    showResetConfirm = true
-                } label: {
-                    Label("プランをリセットして再生成", systemImage: "arrow.counterclockwise")
-                }
-            } footer: {
-                Text("現在の7日間プランを削除します。ワークアウト履歴は残ります。")
-            }
         }
         .navigationTitle("プロフィール")
         .toolbar {
@@ -140,12 +128,6 @@ struct ProfileView: View {
                 }
                 .bold(isEditing)
             }
-        }
-        .confirmationDialog("プランをリセットしますか？", isPresented: $showResetConfirm, titleVisibility: .visible) {
-            Button("リセットする", role: .destructive) { resetPlan() }
-            Button("キャンセル", role: .cancel) { }
-        } message: {
-            Text("現在の7日間プランが削除されます。")
         }
     }
 
@@ -173,11 +155,6 @@ struct ProfileView: View {
         try? modelContext.save()
     }
 
-    private func resetPlan() {
-        try? modelContext.delete(model: DailySessionModel.self)
-        try? modelContext.save()
-        dismiss()
-    }
 }
 
 // MARK: - サブビュー
