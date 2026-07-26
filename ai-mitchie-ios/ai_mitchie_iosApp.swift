@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import GoogleMobileAds
 
 // MARK: - ナビゲーション管理（ルートへのリセット用）
 @Observable
@@ -22,11 +23,20 @@ class NavigationCoordinator {
 struct ai_mitchie_iosApp: App {
     @State private var coordinator = NavigationCoordinator()
 
+    init() {
+        MobileAds.shared.start(completionHandler: nil)
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environment(coordinator)
                 .preferredColorScheme(.light)
+                .safeAreaInset(edge: .bottom) {
+                    BannerAdView(adUnitID: "ca-app-pub-1500641298650002/4330635975")
+                        .frame(height: 50)
+                        .background(.ultraThinMaterial)
+                }
         }
         .modelContainer(for: [
             DailySessionModel.self,
