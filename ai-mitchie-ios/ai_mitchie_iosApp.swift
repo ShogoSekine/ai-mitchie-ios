@@ -33,7 +33,7 @@ struct ai_mitchie_iosApp: App {
                 .environment(coordinator)
                 .preferredColorScheme(.light)
                 .safeAreaInset(edge: .bottom) {
-                    BannerAdView(adUnitID: "ca-app-pub-1500641298650002/4330635975")
+                    BannerAdView(adUnitID: "ca-app-pub-3940256099942544/2934735716") // 本番用："ca-app-pub-1500641298650002/4330635975"
                         .frame(height: 50)
                         .background(.ultraThinMaterial)
                 }

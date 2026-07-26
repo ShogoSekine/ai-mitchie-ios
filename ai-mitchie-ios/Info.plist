@@ -7,8 +7,15 @@
 	<key>ApiGatewayKey</key>
 	<string>$(API_GATEWAY_KEY)</string>
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-1500641298650002~1435779242</string>
+	<string>ca-app-pub-3940256099942544~1458002511</string> <!-- TODO 本番 <string>ca-app-pub-1500641298650002~1435779242</string> -->
 	<key>NSUserTrackingUsageDescription</key>
-	<string>広告の最適化のために端末識別子を使用します。</string>
+	<string>このAppでは、他社のAppやWebサイトでの行動データを基に、関心に合わせた広告を表示するために、トラッキングに関する許可をお願いしています。</string>
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
 </dict>
 </plist>
