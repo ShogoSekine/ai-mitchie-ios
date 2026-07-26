@@ -115,13 +115,7 @@ struct WorkoutDashboardView: View {
                 )
             }
 
-            Button(action: resetPlan) {
-                Label("プランをリセット", systemImage: "arrow.counterclockwise")
-                    .font(.subheadline)
-                    .foregroundColor(.red)
-            }
-            .padding(.top, 4)
-            .padding(.bottom, 16)
+            Spacer(minLength: 8)
         }
         .padding(.horizontal)
     }
