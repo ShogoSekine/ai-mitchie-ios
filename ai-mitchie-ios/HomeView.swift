@@ -249,11 +249,14 @@ struct HomeView: View {
 
     // MARK: - サボり日チェック
     private func checkFollowup() {
-        guard let profile,
+        // 既にこの起動中に表示済みなら再表示しない
+        guard !FollowupManager.shared.hasShownFollowupThisRun,
+              let profile,
               let lastDate = profile.lastWorkoutDate else { return }
         let days = Calendar.current.dateComponents([.day], from: lastDate, to: Date()).day ?? 0
         if days >= 3 {
             showFollowup = true
+            FollowupManager.shared.hasShownFollowupThisRun = true
         }
     }
 
