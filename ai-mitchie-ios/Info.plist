@@ -6,5 +6,9 @@
 	<string>$(API_GATEWAY_URL)</string>
 	<key>ApiGatewayKey</key>
 	<string>$(API_GATEWAY_KEY)</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-1500641298650002~1435779242</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>広告の最適化のために端末識別子を使用します。</string>
 </dict>
 </plist>
