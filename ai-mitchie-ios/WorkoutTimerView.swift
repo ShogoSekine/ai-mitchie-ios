@@ -94,7 +94,10 @@ struct WorkoutTimerView: View {
             ZStack {
                 Color(white: 0.97).ignoresSafeArea()
 
-                VStack(spacing: 20) {
+                GeometryReader { geo in
+                // 小さい画面（SE等）では円とメッセージ欄を縮小する
+                let scale = min(1, max(0.6, (geo.size.height - 50) / 640))
+                VStack(spacing: 20 * scale) {
                 // --- 進捗インジケーターエリア ---
                 HStack(spacing: 30) {
                     VStack {
@@ -166,20 +169,20 @@ struct WorkoutTimerView: View {
 
                     VStack {
                         Text("\(Int(ceil(timeLeft)))")
-                            .font(.system(size: 80, weight: .black, design: .rounded))
+                            .font(.system(size: 80 * scale, weight: .black, design: .rounded))
                         Text("SECONDS")
                             .font(.caption).bold()
                     }
                 }
-                .frame(width: 240, height: 240)
+                .frame(width: 240 * scale, height: 240 * scale)
 
                 // Mitchieのメッセージエリア
                 Text(mitchieMotivation)
                     .font(.headline)
                     .italic()
                     .multilineTextAlignment(.center)
-                    .frame(height: 100)
-                    .padding()
+                    .frame(height: 100 * scale)
+                    .padding(scale < 1 ? 8 : 16)
                     .background(Color.white)
                     .cornerRadius(15)
                     .shadow(color: .black.opacity(0.05), radius: 5)
@@ -200,6 +203,10 @@ struct WorkoutTimerView: View {
                 .padding(.horizontal, 40)
                 .padding(.bottom, 20)
             }
+            // バナー広告（高さ50）と重ならないよう余白を確保
+            .padding(.bottom, 50)
+            .frame(width: geo.size.width, height: geo.size.height)
+                }
 
             // 完了画面へは .navigationDestination で遷移（.constant(true) を使わない）
             }
