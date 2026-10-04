@@ -96,7 +96,7 @@ struct WorkoutTimerView: View {
 
                 GeometryReader { geo in
                 // 小さい画面（SE等）では円とメッセージ欄を縮小する
-                let scale = min(1, max(0.6, (geo.size.height - 50) / 640))
+                let scale = min(1, max(0.6, (geo.size.height - 50) / 720))
                 VStack(spacing: 20 * scale) {
                 // --- 進捗インジケーターエリア ---
                 HStack(spacing: 30) {
@@ -153,6 +153,10 @@ struct WorkoutTimerView: View {
                     }
                 }
 
+                // フォームのお手本（仮: 種目に関わらず共通のGIFを表示）
+                FormGifView(name: "burpee")
+                    .frame(height: 120 * scale)
+
                 // 円形タイマー
                 ZStack {
                     Circle()
@@ -169,19 +173,19 @@ struct WorkoutTimerView: View {
 
                     VStack {
                         Text("\(Int(ceil(timeLeft)))")
-                            .font(.system(size: 80 * scale, weight: .black, design: .rounded))
+                            .font(.system(size: 64 * scale, weight: .black, design: .rounded))
                         Text("SECONDS")
                             .font(.caption).bold()
                     }
                 }
-                .frame(width: 240 * scale, height: 240 * scale)
+                .frame(width: 200 * scale, height: 200 * scale)
 
                 // Mitchieのメッセージエリア
                 Text(mitchieMotivation)
                     .font(.headline)
                     .italic()
                     .multilineTextAlignment(.center)
-                    .frame(height: 100 * scale)
+                    .frame(height: 80 * scale)
                     .padding(scale < 1 ? 8 : 16)
                     .background(Color.white)
                     .cornerRadius(15)
