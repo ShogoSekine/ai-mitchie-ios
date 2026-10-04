@@ -156,6 +156,7 @@ struct WorkoutTimerView: View {
                 // フォームのお手本（仮: 種目に関わらず共通のGIFを表示）
                 FormGifView(name: "burpee")
                     .frame(height: 120 * scale)
+                    .opacity(timerRunning && !isResting ? 1 : 0)
 
                 // 円形タイマー
                 ZStack {
