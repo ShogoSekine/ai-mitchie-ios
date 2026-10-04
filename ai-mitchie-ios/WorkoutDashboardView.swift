@@ -235,59 +235,45 @@ private struct SessionRowView: View {
                             .foregroundColor(session.isCompleted ? .secondary : .primary)
                     }
                     Spacer()
-                    Image(systemName: session.isCompleted
-                          ? "checkmark.circle.fill"
-                          : (isExpanded ? "chevron.up" : "chevron.down"))
-                        .foregroundColor(session.isCompleted ? .green : .orange)
+                    if !session.exercises.isEmpty {
+                        Image(systemName: session.isCompleted
+                              ? "checkmark.circle.fill"
+                              : (isExpanded ? "chevron.up" : "chevron.down"))
+                            .foregroundColor(session.isCompleted ? .green : .orange)
+                    }
                 }
                 .padding()
             }
             .buttonStyle(.plain)
+            .disabled(session.exercises.isEmpty)
 
             // 種目リスト（展開時）
-            if isExpanded {
+            if isExpanded && !session.exercises.isEmpty {
                 Divider()
-                if session.exercises.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "bed.double")
-                            .font(.title2)
-                            .foregroundColor(.gray)
-                        Text("本日はお休みです")
-                            .font(.headline)
-                            .foregroundColor(.gray)
-                        Text("体を休めて、次のセッションに備えましょう！")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                } else {
-                    VStack(spacing: 0) {
-                        ForEach(session.exercises) { exercise in
-                            ExerciseRowInDashboard(exercise: exercise, onInfoTap: { onInfoTap(exercise) })
-                            if exercise.id != session.exercises.last?.id {
-                                Divider().padding(.leading, 16)
-                            }
+                VStack(spacing: 0) {
+                    ForEach(session.exercises) { exercise in
+                        ExerciseRowInDashboard(exercise: exercise, onInfoTap: { onInfoTap(exercise) })
+                        if exercise.id != session.exercises.last?.id {
+                            Divider().padding(.leading, 16)
                         }
                     }
+                }
 
-                    // タイマーへのリンク
-                    if session.canStartWorkout {
-                        NavigationLink(destination: WorkoutTimerView(session: session)) {
-                            HStack {
-                                Image(systemName: "play.circle.fill")
-                                Text("このセッションを始める！")
-                                    .font(.subheadline).bold()
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.orange)
-                            .cornerRadius(10)
-                            .padding([.horizontal, .bottom], 12)
-                            .padding(.top, 8)
+                // タイマーへのリンク
+                if session.canStartWorkout {
+                    NavigationLink(destination: WorkoutTimerView(session: session)) {
+                        HStack {
+                            Image(systemName: "play.circle.fill")
+                            Text("このセッションを始める！")
+                                .font(.subheadline).bold()
                         }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.orange)
+                        .cornerRadius(10)
+                        .padding([.horizontal, .bottom], 12)
+                        .padding(.top, 8)
                     }
                 }
             }
